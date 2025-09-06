@@ -1,11 +1,11 @@
 Item------------------------,Description-----------------------------------------------------------,Link---------------------------------------------------------------------,Qty,Cost
-SEEED XAIO rp2040,Main controller for everything.,https://www.mouser.com/ProductDetail/Seeed-Studio/102010428?qs=Znm5pLBrcAJ75FCbdxzDHQ%3D%3D,1,$5.40
-Motor Driver 12v 3A w/ Builtin 5V reg,To drive the motor at higher power,https://www.seeedstudio.com/MDD3A-p-4274.html,1,$8.50
-N20 Motor 12v w/ Gearbox & Encoder,"Motor with gearbox, high torque but decent speed, encoder",https://www.waveshare.com/dcgm-n20-12v-en-200rpm.htm,1,$6.99
-Wire?,Labriola I think has free wire,,,$0.00
-NFC Reader,Ari has some readers,,1,$0.00
-Buttons,"2 buttons, 1 to flash a new card, 1 to test open",https://www.seeedstudio.com/Grove-Button.html,2,$3.00
-RGB LED,Indicator Light through eyehole,,1,$0.00
-DC wall adapter 12v,,https://www.seeedstudio.com/Power-Adapter-12V-2A-US-p-5731.html,1,$7.00
-Shipping,,,,$20.00
-Totals:,,,7,$50.88
+SEEED XAIO rp2040,Main controller for everything.,https://www.mouser.com/ProductDetail/Seeed-Studio/102010428?qs=Znm5pLBrcAJ75FCbdxzDHQ%3D%3D,1,$5.40 
+Motor Driver 12v 3A w/ Builtin 5V reg,To drive the motor at higher power,https://www.seeedstudio.com/MDD3A-p-4274.html,1,$8.50 
+N20 Motor 12v w/ Gearbox & Encoder,"Motor with gearbox, high torque but decent speed, encoder",https://www.waveshare.com/dcgm-n20-12v-en-200rpm.htm,1,$6.99 
+Wire?,Labriola I think has free wire,,,$0.00 
+NFC Reader,Ari has some readers,https://www.amazon.com/SunFounder-Mifare-Reader-Arduino-Raspberry/dp/B07KGBJ9VG/ref=sr_1_4?crid=39IT9TXM4QOJX&dib=eyJ2IjoiMSJ9.ff-QrtrK-LbzkdcwrCJDVw6sD32-vuzBt4XFp5W7gIyjZTV8nwb8-j5fOp_6VNhTjDa9iV_rOc5KKGZLZV8AKRXEtEmPciyfd_BiXV5ti9bbQaEx5jXTft9TWDlS6s7-apY5_QWPLYVhXBoq0FSBQ0SEgzWOWieWdtCcAu-oD0lsq16UOIDHktFYVONSJ8GYe2Fbehmqygiou6J9revUvqpHEZiHQZzoP0DM1pSQ7Ow.3UMgG5WeJ5rRynM9H66IbiV5Qle-JPOQQCgfsMKvumQ&dib_tag=se&keywords=rc522+rfid+reader&qid=1757200494&sprefix=rc522%2Caps%2C156&sr=8-4&xpid=CKuhAdXn41nMd,1,$9.00 
+Buttons,"2 buttons, 1 to flash a new card, 1 to test open",https://www.seeedstudio.com/Grove-Button.html,2,$3.00 
+RGB LED,Indicator Light through eyehole,,1,$0.00 
+DC wall adapter 12v,,https://www.seeedstudio.com/Power-Adapter-12V-2A-US-p-5731.html,1,$7.00 
+Shipping,,,,$20.00 
+Totals:,,,7,$50.88 
