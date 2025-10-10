@@ -16,11 +16,16 @@
 #define ENC_B D3
 
 // --- Constants ---
-const int DOOR_TRAVEL_TICKS = 400;
 const int MOTOR_SPEED_FULL = 255;
+const int MOTOR_SPEED_MIN = 25;//minimum speed for it to move.
 const int MOTOR_SPEED_MANUAL = 100;
+const int FULL_REVOLUTIION_TICKS = 1200;//12 ticks per encoder revolution, 100:1 reduction
+const int DOOR_TRAVEL_TICKS = 400;
 const long DOOR_HOLD_TIME = 2000;  // ms
 const int MAX_IDS = 50;           // Set a reasonable max limit for IDs
+
+const int Kp = 3;
+const int TARGET_RANGE = 20;// Number of tick+- to consider in target.
 
 // --- EEPROM Data Structure ---
 // EEPROM is emulated Flash memory on the RP2040.
@@ -93,7 +98,7 @@ void loop() {
     // Enter programming mode after a 2-second hold
     if (!programmingMode && (millis() - buttonHoldStartTime > 2000)) {
       programmingMode = true;
-      stopMotor(); // Ensure motor is off
+      driveMotor(0); // Ensure motor is off
       targetPos = encoderPos; // Cancel any movement
       Serial.println(F("\n--- ENTERING PROGRAMMING MODE ---"));
       Serial.println(F("Scan a tag to add/remove. Press any single button to exit."));
@@ -123,18 +128,18 @@ void loop() {
 
     if (btnUpState) {
       targetPos = encoderPos; // Cancel any automatic movement
-      driveMotor(forward, MOTOR_SPEED_MANUAL);
+      driveMotor(MOTOR_SPEED_MANUAL);
       wasManualDriving = true;
     } else if (btnDownState) {
       targetPos = encoderPos; // Cancel any automatic movement
-      driveMotor(backward, MOTOR_SPEED_MANUAL);
+      driveMotor(-MOTOR_SPEED_MANUAL);
       wasManualDriving = true;
     } else {
       // This block runs when no manual buttons are being pressed.
 
       // If we just finished a manual drive (i.e., the button was just released)...
       if (wasManualDriving) {
-        stopMotor();
+        driveMotor(0);
         // Set the new zero position ON RELEASE, which is more intuitive.
         encoderPos = 0;
         targetPos = 0;
@@ -143,10 +148,10 @@ void loop() {
 
       // Run automatic logic only when not in a manual-drive state.
       // Only check for new cards if the motor is idle.
-      if (targetPos == encoderPos) {
+      if (targetReached()) {
         if (readCard() && verifyID(nuidPICC)) {
           if (!isOpen) {
-            driveToTarget(MOTOR_SPEED_FULL, DOOR_TRAVEL_TICKS);
+            targetPos = DOOR_TRAVEL_TICKS;
             isOpen = true;
             openTime = 0;
             Serial.println(F("Opening door"));
@@ -162,7 +167,7 @@ void loop() {
           openTime = millis();
         }
         if (millis() - openTime > DOOR_HOLD_TIME) {
-          driveToTarget(MOTOR_SPEED_FULL, 0);
+          targetPos = 0;
 
           isOpen = false;
           openTime = 0;
@@ -177,6 +182,10 @@ void loop() {
   byte currentState = (digitalRead(ENC_A) << 1) | digitalRead(ENC_B);
   Serial.printf("encoder state %d \n",currentState);
 
+}
+
+bool targetReached() {
+  return (encoderPos <= targetPos + TARGET_RANGE) && (encoderPos >= targetPos - TARGET_RANGE);
 }
 
 // --- ID & EEPROM Management ---
@@ -262,33 +271,34 @@ bool verifyID(byte id[4]) {
 // --- Motor, RFID, and Helper functions ---
 
 
-void driveMotor(motorDirection direction, int speed) {
-  if (direction == forward) {
+void driveMotor(int speed) {
+  if (speed > 0) {
     analogWrite(MOTOR_A, speed);
     digitalWrite(MOTOR_B, LOW);
+  } else if (speed < 0) {
+    digitalWrite(MOTOR_A, LOW);
+    analogWrite(MOTOR_B, -speed);
   } else {
     digitalWrite(MOTOR_A, LOW);
-    analogWrite(MOTOR_B, speed);
+    digitalWrite(MOTOR_B, LOW);
   }
-}
-
-void stopMotor() {
-  digitalWrite(MOTOR_A, LOW);
-  digitalWrite(MOTOR_B, LOW);
-}
-
-void driveToTarget(int speed, int encoderTicks) {
-  targetPos = encoderTicks;
 }
 
 void motorLoop() {
-  if (encoderPos < targetPos) {
-    driveMotor(forward, MOTOR_SPEED_FULL);
-  } else if (encoderPos > targetPos) {
-    driveMotor(backward, MOTOR_SPEED_FULL);
-  } else {
-    stopMotor();
+  // Currently I need to use a PID controller, but this is a proportional controller
+  int error = targetPos - encoderPos;
+  // Equation, if a full revolution is needed it will go full speed, Kp disregarded
+  int motorSpeed = Kp * error * (MOTOR_SPEED_FULL / FULL_REVOLUTIION_TICKS);
+
+  //bounding the motor speed between full speed and minimum move speed.
+  motorSpeed = max(min(motorSpeed, MOTOR_SPEED_FULL), MOTOR_SPEED_MIN);
+
+  if (targetReached()) {
+    motorSpeed = 0;
   }
+
+  driveMotor(motorSpeed);
+  
 }
 
 bool readCard() {
