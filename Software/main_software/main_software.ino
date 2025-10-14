@@ -17,15 +17,15 @@
 
 // --- Constants ---
 const int MOTOR_SPEED_FULL = 255;
-const int MOTOR_SPEED_MIN = 25;//minimum speed for it to move.
+const int MOTOR_SPEED_MIN = 80;//minimum speed for it to move.
 const int MOTOR_SPEED_MANUAL = 100;
-const int FULL_REVOLUTIION_TICKS = 1200;//12 ticks per encoder revolution, 100:1 reduction
-const int DOOR_TRAVEL_TICKS = 400;
+const int FULL_REVOLUTIION_TICKS = 8620;//12 ticks per encoder revolution, 100:1 reduction
+const int DOOR_TRAVEL_TICKS = FULL_REVOLUTIION_TICKS * 2;//2 revolutions
 const long DOOR_HOLD_TIME = 2000;  // ms
 const int MAX_IDS = 50;           // Set a reasonable max limit for IDs
 
-const int Kp = 3;
-const int TARGET_RANGE = 20;// Number of tick+- to consider in target.
+const int Kp = 4;
+const int TARGET_RANGE = 10;// Number of tick+- to consider in target.
 
 // --- EEPROM Data Structure ---
 // EEPROM is emulated Flash memory on the RP2040.
@@ -78,8 +78,9 @@ void setup() {
   pinMode(ENC_A, INPUT_PULLUP);
   pinMode(ENC_B, INPUT_PULLUP);
 
-  // Attach encoder interrupt
-  attachInterrupt(digitalPinToInterrupt(ENC_A), readEncoder, CHANGE);;
+  // Attach encoder interrupt. No worky
+  attachInterrupt(digitalPinToInterrupt(ENC_A), readEncoder, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(ENC_B), readEncoder, CHANGE);
 
   Serial.println(F("\n--- RFID Door Lock Ready ---"));
   Serial.printf("Loaded IDs from EEPROM.\n");
@@ -148,19 +149,26 @@ void loop() {
 
       // Run automatic logic only when not in a manual-drive state.
       // Only check for new cards if the motor is idle.
-      if (targetReached()) {
+      if (targetReached(0)) {
         if (readCard() && verifyID(nuidPICC)) {
           if (!isOpen) {
             targetPos = DOOR_TRAVEL_TICKS;
-            isOpen = true;
-            openTime = 0;
             Serial.println(F("Opening door"));
           }
         }
       }
 
+      // if the door is open
+      if (targetReached(DOOR_TRAVEL_TICKS)) {
+        if (!isOpen) {
+          isOpen = true;
+          openTime = 0;
+        }
+      }
+
       // motorLoop handles automatic movement towards a target (e.g., after a card scan)
       motorLoop();
+      //readEncoder();
 
       if (isOpen) {
         if (openTime == 0) {
@@ -180,11 +188,11 @@ void loop() {
 
   //debug encoders
   byte currentState = (digitalRead(ENC_A) << 1) | digitalRead(ENC_B);
-  Serial.printf("encoder state %d \n",currentState);
+  //Serial.printf("encoder state %d \n",currentState);
 
 }
 
-bool targetReached() {
+bool targetReached(int targetPos) {
   return (encoderPos <= targetPos + TARGET_RANGE) && (encoderPos >= targetPos - TARGET_RANGE);
 }
 
@@ -288,12 +296,18 @@ void motorLoop() {
   // Currently I need to use a PID controller, but this is a proportional controller
   int error = targetPos - encoderPos;
   // Equation, if a full revolution is needed it will go full speed, Kp disregarded
-  int motorSpeed = Kp * error * (MOTOR_SPEED_FULL / FULL_REVOLUTIION_TICKS);
+  int motorSpeed = Kp * error * (float(MOTOR_SPEED_FULL) / float(FULL_REVOLUTIION_TICKS));
 
   //bounding the motor speed between full speed and minimum move speed.
-  motorSpeed = max(min(motorSpeed, MOTOR_SPEED_FULL), MOTOR_SPEED_MIN);
-
-  if (targetReached()) {
+  if (motorSpeed > 0) {
+    motorSpeed = constrain(motorSpeed, MOTOR_SPEED_MIN, MOTOR_SPEED_FULL);
+  }
+  else {
+    motorSpeed = constrain(motorSpeed, -MOTOR_SPEED_FULL, -MOTOR_SPEED_MIN);
+  }
+  //Serial.println(motorSpeed);
+  Serial.printf("encoder pos %d \n",encoderPos);
+  if (targetReached(targetPos)) {
     motorSpeed = 0;
   }
 
@@ -318,7 +332,6 @@ void readEncoder() {
   
   // Read the current state of the two pins
   byte currentState = (digitalRead(ENC_A) << 1) | digitalRead(ENC_B);
-  Serial.printf("encoder state",currentState);
 
   // If the state hasn't changed, do nothing (prevents floating pins from causing issues)
   if (currentState == lastState) {
